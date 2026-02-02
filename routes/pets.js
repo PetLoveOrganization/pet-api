@@ -10,7 +10,7 @@ export const createPetsRouter = ({ petsModel }) => {
   router.get('/', validateFilters, petsController.getAll)
   router.get('/:id', petsController.getById)
   router.post('/', validateCreate, petsController.create)
-  router.put('/:id', validateUpdate, petsController.update)
+  router.patch('/:id', validateUpdate, petsController.update)
   router.delete('/:id', petsController.delete)
 
   // router.options('/:id', (req, res) => {

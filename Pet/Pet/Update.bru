@@ -4,10 +4,19 @@ meta {
   seq: 2
 }
 
-put {
-  url: http://localhost:3000/
-  body: none
+patch {
+  url: http://localhost:4000/pets/8519d783-c514-4ca0-afe7-c22e11e14ac7
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "name": "Pedro",
+    "images": [
+      "https://images.unsplash.com/photo-1552053831-71594a27632d"
+    ]
+  }
 }
 
 settings {

@@ -19,7 +19,7 @@ export class PetsController {
     const { id } = req.params
     const pet = await this.petsModel.getById({ id })
     if (!pet) {
-      return res.status(404).json({ message: 'Pet not found' })
+      return res.status(404).json({ status: 'error', message: 'Pet not found' })
     }
     res.json(pet)
   }
@@ -37,7 +37,7 @@ export class PetsController {
     const { id } = req.params
     const updatePet = await this.petsModel.update({ id, input: req.body })
     if (!updatePet) {
-      return res.status(404).json({ message: 'Pet not found' })
+      return res.status(404).json({ status: 'error', message: 'Pet not found' })
     }
     res.json(updatePet)
   }
@@ -46,7 +46,7 @@ export class PetsController {
     const { id } = req.params
     const result = await this.petsModel.delete({ id })
     if (!result) {
-      return res.status(404).json({ message: 'Pet not found' })
+      return res.status(404).json({ status: 'error', message: 'Pet not found' })
     }
     res.json({ message: 'Pet deleted' })
   }

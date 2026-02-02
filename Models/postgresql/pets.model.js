@@ -37,7 +37,7 @@ export class PetsModel {
       queryParams.push(true)
     }
     const isAsc = sortBy === 'oldest'
-    const query = `SELECT * FROM pets ${where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created_at ${isAsc ? 'ASC' : 'DESC'} LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`
+    const query = `SELECT p.*, JSON_AGG(pi.image_url) AS images FROM pets p LEFT JOIN pet_images pi ON p.id = pi.pet_id ${where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''} GROUP BY p.id ORDER BY created_at ${isAsc ? 'ASC' : 'DESC'} LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`
     const { rows: pets } = await pool.query(query, [...queryParams, limit, offset])
     return {
       data: pets,
@@ -48,8 +48,14 @@ export class PetsModel {
   }
 
   static async getById ({ id }) {
-    const { rows: [pet] } = await pool.query('SELECT * FROM pets WHERE id = $1', [id])
-    return pet
+    const { rows: [pet] } = await pool.query('SELECT p.*, JSON_AGG(pi.image_url) AS images FROM pets p LEFT JOIN pet_images pi ON p.id = pi.pet_id WHERE p.id = $1 GROUP BY p.id', [id])
+    if (!pet) {
+      return null
+    }
+    return {
+      ...pet,
+      images: pet.images
+    }
   }
 
   static async create ({ input }) {
@@ -81,20 +87,51 @@ export class PetsModel {
   }
 
   static async update ({ id, input }) {
-    // const petIndex = pets.findIndex(pet => pet.id === id)
-    // if (petIndex === -1) {
-    //   return null
-    // }
-    // pets[petIndex] = { ...pets[petIndex], ...input }
-    // return pets[petIndex]
+    const client = await pool.connect()
+    const { images, ...rest } = input
+    try {
+      await client.query('BEGIN')
+      if (Object.keys(rest).length === 0) {
+        throw new Error('No data provided')
+      }
+      const fields = Object.keys(rest)
+      const values = Object.values(rest)
+      const queryParams = [...values, id]
+      const query = `UPDATE pets SET ${fields.map((field, index) => `${field} = $${index + 1}`).join(', ')} WHERE id = $${fields.length + 1} RETURNING *`
+      const { rows } = await client.query(query, queryParams)
+      if (rows.length === 0) {
+        return null
+      }
+      if (images) {
+        await client.query('DELETE FROM pet_images WHERE pet_id = $1', [id])
+        const imgValues = []
+        const placeholders = images.map((url, index) => {
+          const offset = index * 2
+          imgValues.push(rows[0].id, url)
+          return `($${offset + 1}, $${offset + 2}, ${index === 0})`
+        }).join(', ')
+        await client.query(`INSERT INTO pet_images (pet_id, image_url, is_primary) VALUES ${placeholders}`, imgValues)
+      }
+      const { rows: imagesRows } = await client.query('SELECT * FROM pet_images WHERE pet_id = $1', [id])
+      await client.query('COMMIT')
+      return {
+        ...rows[0],
+        images: imagesRows.map(image => image.image_url)
+      }
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   static async delete ({ id }) {
-    // const petIndex = pets.findIndex(pet => pet.id === id)
-    // if (petIndex === -1) {
-    //   return null
-    // }
-    // pets.splice(petIndex, 1)
-    // return true
+    const client = await pool.connect()
+    const { rows } = await client.query('DELETE FROM pets WHERE id = $1 RETURNING *', [id])
+    if (rows.length === 0) {
+      return null
+    }
+    return rows[0]
   }
 }
