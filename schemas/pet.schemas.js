@@ -1,6 +1,6 @@
 import z from 'zod'
 
-const petSchema = z.object({
+export const petSchema = z.object({
   name: z.string({
     invalid_type_error: 'Pet name must be a string',
     required_error: 'Pet name is required'
@@ -52,11 +52,3 @@ const petSchema = z.object({
     required_error: 'Location is required'
   }).max(50, 'Location must be at most 50 characters')
 })
-
-export function validatePet (input) {
-  return petSchema.safeParse(input)
-}
-
-export function validatePartialPet (input) {
-  return petSchema.partial().safeParse(input)
-}

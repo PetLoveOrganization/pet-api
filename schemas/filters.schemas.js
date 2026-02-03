@@ -1,14 +1,13 @@
 import z from 'zod'
 import { DEFAULTS } from '../config.js'
 
-const filtersSchema = z.object({
+export const filtersSchema = z.object({
   species: z
     .preprocess((val) => {
-      if (typeof val === 'string') return val.split(',')
-      return val
+      if (!val) return []
+      return Array.isArray(val) ? val : [val]
     }, z.array(z.enum(['dog', 'cat', 'rabbit', 'bird', 'other'], {
-
-      error: () => ({ message: 'Species must be one of dog, cat, rabbit, bird, other' })
+      errorMap: () => ({ message: 'Species must be one of dog, cat, rabbit, bird, other' })
     })))
     .optional(),
   age: z.coerce.number().int().min(0).max(4),
@@ -17,7 +16,7 @@ const filtersSchema = z.object({
     return val
   }, z.enum(['male', 'female'])),
   actions: z.enum(['urgent', 'vaccinated']),
-  text: z.string().toLowerCase(),
+  text: z.string().toLowerCase().optional(),
   sortBy: z.enum(['latest', 'oldest']).optional(),
   offset: z
     .string()
@@ -36,7 +35,3 @@ const filtersSchema = z.object({
     .default(DEFAULTS.LIMIT_PAGE)
     .optional()
 })
-
-export function validatePartialFilters (object) {
-  return filtersSchema.partial().safeParse(object)
-}
