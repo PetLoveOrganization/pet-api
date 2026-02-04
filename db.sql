@@ -43,4 +43,4 @@ SELECT * FROM pet_images;
 DELETE FROM pet_images;
 DELETE FROM pets;
 
-ALTER TABLE pets ADD COLUMN is_urgent BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE pets ADD COLUMN is_urgent BOOLEAN NOT NULL DEFAULT false; 

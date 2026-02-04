@@ -20,7 +20,7 @@ export class PetsController {
   create = async (req, res, next) => {
     try {
       const pet = await this.petsModel.create({ input: req.body })
-      res.json(pet)
+      res.status(201).json(pet)
     } catch (error) {
       next(error)
     }
