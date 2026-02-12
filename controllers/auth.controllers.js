@@ -15,14 +15,14 @@ export class AuthController {
     const { accessToken, refreshToken } = generateTokens({ user })
     res.cookie('access_token', accessToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
+      secure: false,
+      sameSite: 'lax',
       maxAge: DEFAULTS.MAX_AGE_ACCESS_TOKEN
     })
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
+      secure: false,
+      sameSite: 'lax',
       maxAge: DEFAULTS.MAX_AGE_REFRESH_TOKEN,
       path: '/auth/refresh'
     })

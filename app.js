@@ -7,7 +7,6 @@ import { AuthModel } from './models/postgresql/auth.model.js'
 import { PORT } from './config.js'
 import { errorHandlerMiddleware } from './middlewares/error.middlewares.js'
 import morgan from 'morgan'
-import { verifyToken } from './middlewares/auth.middlewares.js'
 import cookieParser from 'cookie-parser'
 
 const app = express()
@@ -19,7 +18,7 @@ app.use(cookieParser())
 app.use(morgan('dev'))
 
 app.use('/auth', createAuthRouter({ authModel: AuthModel }))
-app.use('/pets', verifyToken, createPetsRouter({ petsModel: PetsModel }))
+app.use('/pets', createPetsRouter({ petsModel: PetsModel }))
 
 app.use(errorHandlerMiddleware)
 
