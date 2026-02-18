@@ -28,6 +28,9 @@ export class PetsController {
 
   update = async (req, res) => {
     const { id } = req.params
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({ status: 'error', message: 'No data provided' })
+    }
     const updatePet = await this.petsModel.update({ id, input: req.body })
     if (!updatePet) {
       return res.status(404).json({ status: 'error', message: 'Pet not found' })

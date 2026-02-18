@@ -15,7 +15,8 @@ export const filtersSchema = z.object({
     if (typeof val === 'string') return val.toLowerCase()
     return val
   }, z.enum(['male', 'female'])),
-  actions: z.enum(['urgent', 'vaccinated']),
+  states: z.enum(['friendly', 'trained', 'urgent']),
+  health: z.enum(['sterilized', 'vaccinated', 'dewormed']),
   text: z.string().toLowerCase().optional(),
   sortBy: z.enum(['latest', 'oldest']).optional(),
   offset: z

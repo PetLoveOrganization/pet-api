@@ -2,7 +2,7 @@ import { pool } from './db.js'
 // import crypto from 'node:crypto'
 import { AgeUnit, PetAges } from '../../type.d.js'
 export class PetsModel {
-  static async getAll ({ text, species, age, gender, actions, sortBy, offset, limit }) {
+  static async getAll ({ text, species, age, gender, states, health, sortBy, offset, limit }) {
     const where = []
     const queryParams = []
     if (text) {
@@ -31,8 +31,13 @@ export class PetsModel {
       where.push(`gender = $${queryParams.length + 1}`)
       queryParams.push(gender)
     }
-    if (actions) {
-      const bdActionColum = `is_${actions}`
+    if (states) {
+      const bdActionColum = `is_${states}`
+      where.push(`${bdActionColum} = $${queryParams.length + 1}`)
+      queryParams.push(true)
+    }
+    if (health) {
+      const bdActionColum = `is_${health}`
       where.push(`${bdActionColum} = $${queryParams.length + 1}`)
       queryParams.push(true)
     }
@@ -60,7 +65,10 @@ export class PetsModel {
     const { rows: [pet] } = await pool.query(`
       SELECT 
         p.*, 
-        (SELECT JSON_AGG(pi.image_url) FROM pet_images pi WHERE pi.pet_id = p.id) AS images, 
+        (SELECT JSON_AGG(json_build_object(
+          'image_url', pi.image_url,
+          'is_primary', pi.is_primary
+        )) FROM pet_images pi WHERE pi.pet_id = p.id) AS images, 
         json_build_object(  
           'id', u.id, 
           'name', u.name, 
@@ -72,7 +80,6 @@ export class PetsModel {
           WHERE par.pet_id = p.id) AS requirements 
       FROM pets p 
       INNER JOIN users u ON p.user_id = u.id
-      LEFT JOIN pet_health_details h ON p.id = h.pet_id
       WHERE p.id = $1 AND p.deleted_at IS NULL
       GROUP BY p.id, u.id
       
@@ -123,38 +130,97 @@ export class PetsModel {
 
   static async update ({ id, input }) {
     const client = await pool.connect()
-    const { images, ...rest } = input
+    const { images, requirement_ids, ...rest } = input
     try {
       await client.query('BEGIN')
-      if (Object.keys(rest).length === 0) {
-        throw new Error('No data provided')
+
+      let petData = null
+      if (Object.keys(rest).length > 0) {
+        const fields = Object.keys(rest)
+        const values = Object.values(rest)
+        const query = `
+        UPDATE pets 
+        SET ${fields.map((f, i) => `${f} = $${i + 1}`).join(', ')} 
+        WHERE id = $${fields.length + 1} RETURNING *`
+        const { rows } = await client.query(query, [...values, id])
+        petData = rows[0]
       }
-      const fields = Object.keys(rest)
-      const values = Object.values(rest)
-      const queryParams = [...values, id]
-      const query = `UPDATE pets SET ${fields.map((field, index) => `${field} = $${index + 1}`).join(', ')} WHERE id = $${fields.length + 1} RETURNING *`
-      const { rows } = await client.query(query, queryParams)
-      if (rows.length === 0) {
-        return null
+
+      if (!petData) {
+        const { rows } = await client.query('SELECT * FROM pets WHERE id = $1', [id])
+        if (rows.length === 0) throw new Error('Pet not found')
+        petData = rows[0]
       }
-      if (images) {
-        await client.query('DELETE FROM pet_images WHERE pet_id = $1', [id])
-        const imgValues = []
-        const placeholders = images.map((url, index) => {
-          const offset = index * 2
-          imgValues.push(rows[0].id, url)
-          return `($${offset + 1}, $${offset + 2}, ${index === 0})`
-        }).join(', ')
-        await client.query(`INSERT INTO pet_images (pet_id, image_url, is_primary) VALUES ${placeholders}`, imgValues)
+
+      if (requirement_ids && requirement_ids.length > 0) {
+        await client.query(
+          'DELETE FROM pet_adoption_requirements WHERE pet_id = $1 AND requirement_id != ALL($2)',
+          [id, requirement_ids]
+        )
+        const reqQueries = requirement_ids.map(reqId =>
+          client.query(
+            'INSERT INTO pet_adoption_requirements (pet_id, requirement_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [id, reqId]
+          )
+        )
+        await Promise.all(reqQueries)
       }
-      const { rows: imagesRows } = await client.query('SELECT * FROM pet_images WHERE pet_id = $1', [id])
+
+      if (images && images.length > 0) {
+        const currentUrls = images.map(img => img.image_url)
+
+        // A. Borrar imágenes que ya no están en el nuevo set
+        await client.query(
+          'DELETE FROM pet_images WHERE pet_id = $1 AND image_url != ALL($2)',
+          [id, currentUrls]
+        )
+
+        // B. Upsert de las imágenes enviadas (Actualiza is_primary o Inserta nueva)
+        const imgQueries = images.map(img =>
+          client.query(`
+          INSERT INTO pet_images (pet_id, image_url, is_primary) 
+          VALUES ($1, $2, $3)
+          ON CONFLICT (pet_id, image_url) 
+          DO UPDATE SET is_primary = EXCLUDED.is_primary`,
+          [id, img.image_url, img.is_primary]
+          )
+        )
+        await Promise.all(imgQueries)
+
+        const { rowCount } = await client.query(
+          'SELECT 1 FROM pet_images WHERE pet_id = $1 AND is_primary = true',
+          [id]
+        )
+
+        if (rowCount === 0) {
+          await client.query(`
+            UPDATE pet_images 
+            SET is_primary = true 
+            WHERE id = (
+              SELECT id FROM pet_images WHERE pet_id = $1 LIMIT 1
+            )`, [id])
+        }
+      }
+
+      const { rows: finalImages } = await client.query(
+        'SELECT image_url, is_primary FROM pet_images WHERE pet_id = $1 ORDER BY is_primary DESC', [id]
+      )
+      const { rows: finalReqs } = await client.query(`
+      SELECT json_agg(r.description) as requirements FROM adoption_requirements r
+      JOIN pet_adoption_requirements par ON r.id = par.requirement_id
+      WHERE par.pet_id = $1`, [id]
+      )
+
       await client.query('COMMIT')
+      const { requirements } = finalReqs[0]
       return {
-        ...rows[0],
-        images: imagesRows.map(image => image.image_url)
+        ...petData,
+        images: finalImages,
+        requirements
       }
     } catch (error) {
       await client.query('ROLLBACK')
+      console.error('Error en Update Pet:', error.message)
       throw error
     } finally {
       client.release()

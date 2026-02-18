@@ -265,6 +265,10 @@ VALUES (
     'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308',
     true
   );
+ALTER TABLE pet_images
+ADD CONSTRAINT pet_image_url_unique UNIQUE (pet_id, image_url);
+ALTER TABLE pet_adoption_requirements
+ADD CONSTRAINT pet_req_unique UNIQUE (pet_id, requirement_id);
 -- 4. Requisitos (3 por mascota)
 INSERT INTO pet_adoption_requirements (pet_id, requirement_id)
 SELECT pid_kobe,
@@ -295,3 +299,5 @@ WHERE description IN (
   );
 END $$;
 COMMIT;
+DELETE FROM adoption_requirements
+WHERE id > 6;

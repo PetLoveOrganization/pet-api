@@ -50,24 +50,25 @@ const petSchema = z.object({
   recovery_fee: z.number().min(0),
 
   // Health
-  is_sterilized: z.boolean().default(false),
+  is_sterilized: z.boolean(),
   sterilization_date: z.coerce.date().nullable(),
-  is_vaccinated: z.boolean().default(false),
-  vaccines_updated_at: z.boolean().default(false),
+  is_vaccinated: z.boolean(),
+  vaccines_updated_at: z.boolean(),
   vaccines: z.string().nullable(),
-  is_dewormed: z.boolean().default(false),
-  dewormed_info: z.string().default('monthly'),
+  is_dewormed: z.boolean(),
+  dewormed_info: z.string().nullable(),
 
   // States
-  is_friendly: z.boolean().default(false),
-  is_trained: z.boolean().default(false),
-  is_urgent: z.boolean().default(false),
-  is_adopted: z.boolean().default(false),
+  is_friendly: z.boolean(),
+  is_trained: z.boolean(),
+  is_urgent: z.boolean(),
+  is_adopted: z.boolean(),
 
   // Levels
   energy_level: level('Energy level'),
   affection_level: level('Affection level'),
   exercise_needs: level('Exercise needs'),
+
   created_at: z.date().optional(),
   deleted_at: z.date().optional()
 })
@@ -104,6 +105,10 @@ const validateSterilization = (data) => {
 }
 
 export const createPetSchema = petInputBase
+  .extend({
+    is_dewormed: z.boolean().default(false),
+    dewormed_info: z.string().default('monthly')
+  })
   .refine(validateVaccination, {
     message: 'Vaccination consistency error',
     path: ['vaccines']
@@ -113,7 +118,8 @@ export const createPetSchema = petInputBase
     path: ['sterilization_date']
   })
 
-export const updatePetSchema = petInputBase.partial()
+export const updatePetSchema = petInputBase
+  .partial()
   .refine(validateVaccination, {
     message: 'Vaccination consistency error',
     path: ['vaccines']
