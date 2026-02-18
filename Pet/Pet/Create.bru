@@ -11,8 +11,9 @@ post {
 }
 
 body:json {
-  {
-      "name": "Pedro",
+  
+    {
+      "name": "Pedro 1",
       "species": "dog",
       "breed": "Golden Retriever",
       "age": 2,
@@ -21,18 +22,32 @@ body:json {
       "color": "Golden",
       "gender": "male",
       "description": "Very energetic and loves playing fetch in the park.",
+      "is_urgent": false,
+      "is_friendly": true,
+      "is_trained": true,
+      "energy_level": "high",
+      "is_vaccinated": false,
+      "location": "Seattle, WA",
+      "recovery_fee": 0,
+      "affection_level": "medium",
+      "exercise_needs": "high",
+      "is_sterilized": true,
+      "sterilization_date": "2025-11-20",
+      "vaccines_updated_at": false,
+      "is_vaccinated": false,
+      "vaccines": "Rabies, DHPP, Lepto",
       "images": [
-        "https://images.unsplash.com/photo-1552053831-71594a27632d",
-        "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e"
+        {
+          "image_url":  "https://images.unsplash.com/photo-1552053831-71594a27632d",
+          "is_primary": true
+        },
+        {
+          "image_url": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e",
+          "is_primary": false
+        }
       ],
-        "is_urgent": false,
-        "is_friendly": true,
-        "is_trained": true,
-        "energy_level": "high",
-        "is_vaccinated": false,
-        "is_neutered": true,
-      "location": "Seattle, WA"
-  }
+      "requirement_ids": [1,2,3]
+    }
 }
 
 settings {

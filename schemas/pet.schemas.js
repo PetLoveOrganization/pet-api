@@ -1,6 +1,15 @@
 import z from 'zod'
 
-export const petSchema = z.object({
+const level = (label) => {
+  return z.enum(['low', 'medium', 'high', 'very high'], {
+    invalid_type_error: `${label} must be one of low, medium, high, very high`,
+    required_error: `${label} is required`
+  })
+}
+
+const petSchema = z.object({
+  id: z.uuid().optional(),
+  user_id: z.uuid().optional(),
   name: z.string({
     invalid_type_error: 'Pet name must be a string',
     required_error: 'Pet name is required'
@@ -34,21 +43,82 @@ export const petSchema = z.object({
     invalid_type_error: 'Description must be a string',
     required_error: 'Description is required'
   }).max(500, 'Description must be at most 500 characters'),
-  images: z.array(z.string(), {
-    invalid_type_error: 'Images must be an array of strings',
-    required_error: 'Images is required'
-  }),
-  is_urgent: z.boolean(),
-  is_friendly: z.boolean(),
-  is_trained: z.boolean(),
-  is_vaccinated: z.boolean(),
-  is_neutered: z.boolean(),
-  energy_level: z.enum(['low', 'medium', 'high'], {
-    invalid_type_error: 'Energy level must be one of low, medium, high',
-    required_error: 'Energy level is required'
-  }),
   location: z.string({
     invalid_type_error: 'Location must be a string',
     required_error: 'Location is required'
-  }).max(50, 'Location must be at most 50 characters')
+  }).max(50, 'Location must be at most 50 characters'),
+  recovery_fee: z.number().min(0),
+
+  // Health
+  is_sterilized: z.boolean().default(false),
+  sterilization_date: z.coerce.date().nullable(),
+  is_vaccinated: z.boolean().default(false),
+  vaccines_updated_at: z.boolean().default(false),
+  vaccines: z.string().nullable(),
+  is_dewormed: z.boolean().default(false),
+  dewormed_info: z.string().default('monthly'),
+
+  // States
+  is_friendly: z.boolean().default(false),
+  is_trained: z.boolean().default(false),
+  is_urgent: z.boolean().default(false),
+  is_adopted: z.boolean().default(false),
+
+  // Levels
+  energy_level: level('Energy level'),
+  affection_level: level('Affection level'),
+  exercise_needs: level('Exercise needs'),
+  created_at: z.date().optional(),
+  deleted_at: z.date().optional()
 })
+
+const petInputBase = petSchema.omit({
+  id: true,
+  is_adopted: true,
+  created_at: true,
+  deleted_at: true
+}).extend({
+  images: z.array(z.object({
+    image_url: z.url(),
+    is_primary: z.boolean()
+  })).min(1, 'At least one image is required'),
+  requirement_ids: z.array(z.number()).min(1, 'At least 1 requirement is needed')
+})
+
+const validateVaccination = (data) => {
+  if (data.is_vaccinated === undefined) return true
+
+  if (data.is_vaccinated) {
+    return !!data.vaccines && data.vaccines.trim().length > 0
+  }
+  return !data.vaccines_updated_at && typeof data.vaccines !== 'string'
+}
+
+const validateSterilization = (data) => {
+  if (data.is_sterilized === undefined) return true
+
+  if (data.is_sterilized) {
+    return data.sterilization_date !== null && data.sterilization_date !== undefined
+  }
+  return data.sterilization_date === null || data.sterilization_date === undefined
+}
+
+export const createPetSchema = petInputBase
+  .refine(validateVaccination, {
+    message: 'Vaccination consistency error',
+    path: ['vaccines']
+  })
+  .refine(validateSterilization, {
+    message: 'If is_sterilized is true, sterilization_date is required',
+    path: ['sterilization_date']
+  })
+
+export const updatePetSchema = petInputBase.partial()
+  .refine(validateVaccination, {
+    message: 'Vaccination consistency error',
+    path: ['vaccines']
+  })
+  .refine(validateSterilization, {
+    message: 'If is_sterilized is true, sterilization_date is required',
+    path: ['sterilization_date']
+  })

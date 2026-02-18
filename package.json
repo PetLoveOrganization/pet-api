@@ -26,6 +26,9 @@
     "zod": "4.3.5"
   },
   "eslintConfig": {
-    "extends": "standard"
+    "extends": "standard",
+    "rules": {
+      "camelcase": "off"
+    }
   }
 }

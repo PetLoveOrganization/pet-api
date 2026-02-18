@@ -37,7 +37,16 @@ export class PetsModel {
       queryParams.push(true)
     }
     const isAsc = sortBy === 'oldest'
-    const query = `SELECT p.*, JSON_AGG(pi.image_url) AS images FROM pets p LEFT JOIN pet_images pi ON p.id = pi.pet_id ${where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''} GROUP BY p.id ORDER BY created_at ${isAsc ? 'ASC' : 'DESC'} LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`
+    const query = `
+    SELECT 
+      p.*, 
+      (SELECT JSON_AGG(pi.image_url) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images 
+    FROM pets p  
+    ${where.length > 0 ? `WHERE ${where.join(' AND ')} AND p.deleted_at IS NULL` : 'WHERE p.deleted_at IS NULL'} 
+    GROUP BY p.id 
+    ORDER BY created_at ${isAsc ? 'ASC' : 'DESC'} 
+    LIMIT $${queryParams.length + 1} 
+    OFFSET $${queryParams.length + 2}`
     const { rows: pets } = await pool.query(query, [...queryParams, limit, offset])
     return {
       data: pets,
@@ -48,35 +57,61 @@ export class PetsModel {
   }
 
   static async getById ({ id }) {
-    const { rows: [pet] } = await pool.query('SELECT p.*, JSON_AGG(pi.image_url) AS images FROM pets p LEFT JOIN pet_images pi ON p.id = pi.pet_id WHERE p.id = $1 GROUP BY p.id', [id])
+    const { rows: [pet] } = await pool.query(`
+      SELECT 
+        p.*, 
+        (SELECT JSON_AGG(pi.image_url) FROM pet_images pi WHERE pi.pet_id = p.id) AS images, 
+        json_build_object(  
+          'id', u.id, 
+          'name', u.name, 
+          'email', u.email
+        ) AS owner,
+        (SELECT json_agg(r.description) 
+          FROM adoption_requirements r 
+          JOIN pet_adoption_requirements par ON r.id = par.requirement_id 
+          WHERE par.pet_id = p.id) AS requirements 
+      FROM pets p 
+      INNER JOIN users u ON p.user_id = u.id
+      LEFT JOIN pet_health_details h ON p.id = h.pet_id
+      WHERE p.id = $1 AND p.deleted_at IS NULL
+      GROUP BY p.id, u.id
+      
+    `, [id])
     if (!pet) {
       return null
     }
-    return {
-      ...pet,
-      images: pet.images
-    }
+    return pet
   }
 
   static async create ({ input }) {
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
-      const { rows } = await client.query('INSERT INTO pets (name, species, breed, age, age_unit, size, color, gender, description, is_friendly, is_trained, is_vaccinated, is_neutered, energy_level, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *', [input.name, input.species, input.breed, input.age, input.age_unit, input.size, input.color, input.gender, input.description, input.is_friendly, input.is_trained, input.is_vaccinated, input.is_neutered, input.energy_level, input.location])
-      const { images } = input
+      const { images, requirement_ids, name, user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs } = input
+      const { rows } = await client.query('INSERT INTO pets (name,user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING *', [name, user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs])
       if (images) {
         const imgValues = []
-        const placeholders = images.map((url, index) => {
-          const offset = index * 2
-          imgValues.push(rows[0].id, url)
-          return `($${offset + 1}, $${offset + 2}, ${index === 0})`
+        const placeholders = images.map((image, index) => {
+          const offset = index * 3
+          imgValues.push(rows[0].id, image.image_url, image.is_primary)
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3})`
         }).join(', ')
         await client.query(`INSERT INTO pet_images (pet_id, image_url, is_primary) VALUES ${placeholders}`, imgValues)
+      }
+      if (requirement_ids) {
+        const reqValues = []
+        const placeholders = requirement_ids.map((req_id, index) => {
+          const offset = index * 2
+          reqValues.push(rows[0].id, req_id)
+          return `($${offset + 1}, $${offset + 2})`
+        }).join(', ')
+        await client.query(`INSERT INTO pet_adoption_requirements (pet_id, requirement_id) VALUES ${placeholders}`, reqValues)
       }
       await client.query('COMMIT')
       return {
         ...rows[0],
-        images
+        images,
+        requirements: requirement_ids
       }
     } catch (error) {
       await client.query('ROLLBACK')
