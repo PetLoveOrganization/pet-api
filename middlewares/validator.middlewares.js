@@ -1,4 +1,4 @@
-import { responseError } from '../utils.js'
+import { responseError } from '../utils/utils.js'
 
 export const validateBody = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body)

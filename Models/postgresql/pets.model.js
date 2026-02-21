@@ -45,7 +45,10 @@ export class PetsModel {
     const query = `
     SELECT 
       p.*, 
-      (SELECT JSON_AGG(pi.image_url) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images 
+      (SELECT JSON_AGG(json_build_object(
+        'image_url', pi.image_url,
+        'is_primary', pi.is_primary
+      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images 
     FROM pets p  
     ${where.length > 0 ? `WHERE ${where.join(' AND ')} AND p.deleted_at IS NULL` : 'WHERE p.deleted_at IS NULL'} 
     GROUP BY p.id 
@@ -74,7 +77,10 @@ export class PetsModel {
           'name', u.name, 
           'email', u.email
         ) AS owner,
-        (SELECT json_agg(r.description) 
+        (SELECT json_agg(json_build_object(
+          'icon_name', r.icon_name,
+          'description', r.description
+        )) 
           FROM adoption_requirements r 
           JOIN pet_adoption_requirements par ON r.id = par.requirement_id 
           WHERE par.pet_id = p.id) AS requirements 

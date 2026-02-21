@@ -1,5 +1,6 @@
 import { DEFAULTS } from '../config.js'
-import { generateTokens, renewAccessToken } from '../services/auth.services.js'
+import { renewAccessToken } from '../services/auth.services.js'
+import { sendTokenCookies } from '../utils/herlpers.js'
 
 export class AuthController {
   constructor ({ authModel }) {
@@ -12,20 +13,7 @@ export class AuthController {
     if (!user) {
       return res.status(401).json({ status: 'error', message: 'Invalid credentials' })
     }
-    const { accessToken, refreshToken } = generateTokens({ user })
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: DEFAULTS.MAX_AGE_ACCESS_TOKEN
-    })
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: DEFAULTS.MAX_AGE_REFRESH_TOKEN,
-      path: '/auth/refresh'
-    })
+    sendTokenCookies(res, user)
     res.json({
       message: 'Login successful',
       user
@@ -35,7 +23,11 @@ export class AuthController {
   register = async (req, res) => {
     const { name, email, password } = req.body
     const user = await this.authModel.register({ name, email, password })
-    res.json(user)
+    sendTokenCookies(res, user)
+    res.status(201).json({
+      message: 'User created successfully',
+      user
+    })
   }
 
   refresh = async (req, res) => {
