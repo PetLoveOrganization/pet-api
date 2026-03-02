@@ -50,13 +50,4 @@ export class AuthController {
     res.clearCookie('refresh_token', { path: '/auth/refresh' })
     res.json({ message: 'Logout successful' })
   }
-
-  me = async (req, res) => {
-    const { id } = req.user
-    const user = await this.authModel.getById({ id })
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' })
-    }
-    res.json(user)
-  }
 }

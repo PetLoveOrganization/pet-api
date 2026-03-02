@@ -1,0 +1,25 @@
+meta {
+  name: Adopter Profile
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/account/adopter-profile
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "phone_number": "+591 32323232",
+    "address": "Zona villa victoria",
+    "type_house": "dsds",
+    "more_pets": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

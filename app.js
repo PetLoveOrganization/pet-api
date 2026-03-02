@@ -8,6 +8,8 @@ import { PORT } from './config.js'
 import { errorHandlerMiddleware } from './middlewares/error.middlewares.js'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
+import { createAccountsRouter } from './routes/account.router.js'
+import { AccountModel } from './models/postgresql/account.model.js'
 
 const app = express()
 
@@ -19,6 +21,7 @@ app.use(morgan('dev'))
 
 app.use('/auth', createAuthRouter({ authModel: AuthModel }))
 app.use('/pets', createPetsRouter({ petsModel: PetsModel }))
+app.use('/account', createAccountsRouter({ accountModel: AccountModel }))
 
 app.use(errorHandlerMiddleware)
 

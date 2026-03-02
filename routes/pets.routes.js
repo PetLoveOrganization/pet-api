@@ -17,5 +17,6 @@ export const createPetsRouter = ({ petsModel }) => {
   router.post('/', validateBody(createPetSchema), petsController.create)
   router.patch('/:id', validateParams(paramsSchema), validateBody(updatePetSchema), petsController.update)
   router.delete('/:id', validateParams(paramsSchema), petsController.delete)
+
   return router
 }

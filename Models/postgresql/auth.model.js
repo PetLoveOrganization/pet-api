@@ -16,16 +16,6 @@ export class AuthModel {
     return userWithoutPassword
   }
 
-  static async getById ({ id }) {
-    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id])
-    const user = rows[0]
-    if (!user) {
-      return null
-    }
-    const { password: _, ...userWithoutPassword } = user
-    return userWithoutPassword
-  }
-
   static async register ({ name, email, password }) {
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
     const { rows } = await pool.query('INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *', [name, email, hashedPassword])

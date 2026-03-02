@@ -11,6 +11,5 @@ export const createAuthRouter = ({ authModel }) => {
   router.post('/register', validateBody(registerSchema), authController.register)
   router.post('/refresh', authController.refresh)
   router.post('/logout', verifyToken, authController.logout)
-  router.get('/me', verifyToken, authController.me)
   return router
 }

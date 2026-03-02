@@ -301,3 +301,14 @@ END $$;
 COMMIT;
 DELETE FROM adoption_requirements
 WHERE id > 6;
+CREATE TYPE type_house AS ENUM ('apartment', 'house', 'house with a patio');
+CREATE TABLE adapter_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  phone_number VARCHAR(20) NOT NULL,
+  address TEXT NOT NULL,
+  type_house type_house NOT NULL,
+  more_pets TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
