@@ -301,14 +301,32 @@ END $$;
 COMMIT;
 DELETE FROM adoption_requirements
 WHERE id > 6;
-CREATE TYPE type_house AS ENUM ('apartment', 'house', 'house with a patio');
-CREATE TABLE adapter_profiles (
+DROP TYPE IF EXISTS housing_type;
+CREATE TYPE housing_type AS ENUM ('apartment', 'house', 'patio');
+DROP TABLE IF EXISTS adapter_profiles;
+CREATE TABLE adopter_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   phone_number VARCHAR(20) NOT NULL,
   address TEXT NOT NULL,
-  type_house type_house NOT NULL,
-  more_pets TEXT,
+  housing housing_type NOT NULL,
+  other_pets TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_user_profile UNIQUE (user_id)
 );
+ALTER TABLE adopter_profiles DROP COLUMN IF EXISTS motivation;
+CREATE TYPE adoption_request_status AS ENUM ('pending', 'approved', 'rejected');
+DROP TABLE IF EXISTS adoption_requests;
+CREATE TABLE adoption_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
+  status adoption_request_status NOT NULL DEFAULT 'pending',
+  motivation TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_user_pet_request UNIQUE (user_id, pet_id)
+);
+ALTER TABLE adopter_profiles
+ADD CONSTRAINT unique_user_profile UNIQUE (user_id);

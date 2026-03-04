@@ -20,14 +20,4 @@ export class AccountController {
     }
     res.json(user)
   }
-
-  createAdapterProfile = async (req, res, next) => {
-    const { id } = req.user
-    try {
-      const adapterProfile = await this.accountModel.createAdapterProfile({ userId: id, input: req.body })
-      res.status(201).json(adapterProfile)
-    } catch (error) {
-      next(error)
-    }
-  }
 }

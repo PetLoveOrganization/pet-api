@@ -10,6 +10,8 @@ import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import { createAccountsRouter } from './routes/account.router.js'
 import { AccountModel } from './models/postgresql/account.model.js'
+import { AdoptionModel } from './models/postgresql/adoption.model.js'
+import { createAdoptionRouter } from './routes/adoption.router.js'
 
 const app = express()
 
@@ -22,6 +24,7 @@ app.use(morgan('dev'))
 app.use('/auth', createAuthRouter({ authModel: AuthModel }))
 app.use('/pets', createPetsRouter({ petsModel: PetsModel }))
 app.use('/account', createAccountsRouter({ accountModel: AccountModel }))
+app.use('/adoptions', createAdoptionRouter({ adoptionModel: AdoptionModel }))
 
 app.use(errorHandlerMiddleware)
 

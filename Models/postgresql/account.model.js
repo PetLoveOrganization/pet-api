@@ -10,10 +10,4 @@ export class AccountModel {
     const { password: _, ...userWithoutPassword } = user
     return userWithoutPassword
   }
-
-  static async createAdapterProfile ({ userId, input }) {
-    const { phone_number, address, type_house, more_pets } = input
-    const { rows } = await pool.query('INSERT INTO adapter_profiles (user_id, phone_number, address, type_house, more_pets) VALUES ($1, $2, $3, $4, $5) RETURNING *', [userId, phone_number, address, type_house, more_pets])
-    return rows[0]
-  }
 }
