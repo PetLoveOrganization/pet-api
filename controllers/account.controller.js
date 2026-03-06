@@ -13,8 +13,8 @@ export class AccountController {
   }
 
   getAdapterProfile = async (req, res) => {
-    const { id } = req.params
-    const user = await this.accountModel.getById({ id })
+    const { id } = req.user
+    const user = await this.accountModel.getAdapterProfile({ id })
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }

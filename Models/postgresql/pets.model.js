@@ -64,7 +64,7 @@ export class PetsModel {
     }
   }
 
-  static async getById ({ id }) {
+  static async getById ({ id, userId = null }) {
     const { rows: [pet] } = await pool.query(`
       SELECT 
         p.*, 
@@ -83,7 +83,7 @@ export class PetsModel {
         )) 
           FROM adoption_requirements r 
           JOIN pet_adoption_requirements par ON r.id = par.requirement_id 
-          WHERE par.pet_id = p.id) AS requirements 
+          WHERE par.pet_id = p.id) AS requirements
       FROM pets p 
       INNER JOIN users u ON p.user_id = u.id
       WHERE p.id = $1 AND p.deleted_at IS NULL

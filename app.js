@@ -22,7 +22,7 @@ app.use(cookieParser())
 app.use(morgan('dev'))
 
 app.use('/auth', createAuthRouter({ authModel: AuthModel }))
-app.use('/pets', createPetsRouter({ petsModel: PetsModel }))
+app.use('/pets', createPetsRouter({ petsModel: PetsModel, accountModel: AccountModel }))
 app.use('/account', createAccountsRouter({ accountModel: AccountModel }))
 app.use('/adoptions', createAdoptionRouter({ adoptionModel: AdoptionModel }))
 

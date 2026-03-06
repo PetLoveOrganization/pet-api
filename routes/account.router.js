@@ -9,7 +9,7 @@ export const createAccountsRouter = ({ accountModel }) => {
   router.use(verifyToken)
 
   router.get('/me', accountController.me)
-  router.get('/adopter-profile', accountController.getAdapterProfile)
+  router.get('/adopter-profile', verifyToken, accountController.getAdapterProfile)
 
   return router
 }

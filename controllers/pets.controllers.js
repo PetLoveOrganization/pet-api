@@ -1,6 +1,7 @@
 export class PetsController {
-  constructor ({ petsModel }) {
+  constructor ({ petsModel, accountModel }) {
     this.petsModel = petsModel
+    this.accountModel = accountModel
   }
 
   getAll = async (req, res) => {
@@ -10,9 +11,13 @@ export class PetsController {
 
   getById = async (req, res) => {
     const { id } = req.params
-    const pet = await this.petsModel.getById({ id })
+    const userId = req.user?.id || null
+    const pet = await this.petsModel.getById({ id, userId })
     if (!pet) {
       return res.status(404).json({ status: 'error', message: 'Pet not found' })
+    }
+    if (userId) {
+      pet.user_context = await this.accountModel.getAdoptionContext({ petId: id, userId })
     }
     res.json(pet)
   }

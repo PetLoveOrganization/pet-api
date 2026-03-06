@@ -5,12 +5,13 @@ import { filtersSchema } from '../schemas/filters.schemas.js'
 import { createPetSchema, updatePetSchema } from '../schemas/pet.schemas.js'
 import { verifyToken } from '../middlewares/auth.middlewares.js'
 import { paramsSchema } from '../schemas/params.schemas.js'
+import { extractUser } from '../middlewares/extract-user.middleware.js'
 
-export const createPetsRouter = ({ petsModel }) => {
-  const petsController = new PetsController({ petsModel })
+export const createPetsRouter = ({ petsModel, accountModel }) => {
+  const petsController = new PetsController({ petsModel, accountModel })
   const router = Router()
   router.get('/', validateQuery(filtersSchema.partial()), petsController.getAll)
-  router.get('/:id', validateParams(paramsSchema), petsController.getById)
+  router.get('/:id', extractUser, validateParams(paramsSchema), petsController.getById)
 
   router.use(verifyToken)
 
