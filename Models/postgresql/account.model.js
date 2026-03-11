@@ -71,20 +71,21 @@ export class AccountModel {
       SELECT *, (SELECT JSON_AGG(json_build_object(
         'image_url', pi.image_url,
         'is_primary', pi.is_primary
-      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images 
+      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images,
+      COUNT(*) OVER() AS full_count
       FROM pets p 
       WHERE p.id IN (
         SELECT pet_id FROM favorites WHERE user_id = $1
       ) AND p.deleted_at IS NULL
-      GROUP BY p.id
       ORDER BY p.created_at DESC
       OFFSET $2
       LIMIT $3
     `
     const { rows } = await pool.query(query, [userId, offset, limit])
+    const total = rows.length > 0 ? parseInt(rows[0].full_count) : 0
     return {
       data: rows,
-      total: rows.length,
+      total,
       offset,
       limit
     }

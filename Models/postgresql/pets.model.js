@@ -48,7 +48,8 @@ export class PetsModel {
       (SELECT JSON_AGG(json_build_object(
         'image_url', pi.image_url,
         'is_primary', pi.is_primary
-      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images 
+      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images,
+      COUNT(*) OVER() AS full_count
     FROM pets p  
     ${where.length > 0 ? `WHERE ${where.join(' AND ')} AND p.deleted_at IS NULL` : 'WHERE p.deleted_at IS NULL'} 
     GROUP BY p.id 
@@ -56,9 +57,10 @@ export class PetsModel {
     LIMIT $${queryParams.length + 1} 
     OFFSET $${queryParams.length + 2}`
     const { rows: pets } = await pool.query(query, [...queryParams, limit, offset])
+    const total = pets.length > 0 ? parseInt(pets[0].full_count) : 0
     return {
       data: pets,
-      total: pets.length,
+      total,
       offset,
       limit
     }
