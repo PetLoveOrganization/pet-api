@@ -330,3 +330,9 @@ CREATE TABLE adoption_requests (
 );
 ALTER TABLE adopter_profiles
 ADD CONSTRAINT unique_user_profile UNIQUE (user_id);
+CREATE TABLE favorites (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, pet_id)
+);

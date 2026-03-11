@@ -45,4 +45,56 @@ export class AccountModel {
       application: rows[0].application
     }
   }
+
+  static async toggleFavorite ({ userId, petId }) {
+    const query = `
+      WITH deleted AS (
+        DELETE FROM favorites
+        WHERE user_id = $1 AND pet_id = $2
+        RETURNING *
+      ),
+      inserted AS (
+        INSERT INTO favorites (user_id, pet_id)
+        SELECT $1, $2
+        WHERE NOT EXISTS (SELECT 1 FROM deleted)
+        RETURNING *
+      )
+      SELECT EXISTS (SELECT 1 FROM inserted) as "isFavorite";
+    `
+    const { rows } = await pool.query(query, [userId, petId])
+    return rows[0]
+  }
+
+  static async getFavoritePets ({ userId, validQuery }) {
+    const { offset, limit } = validQuery
+    const query = `
+      SELECT *, (SELECT JSON_AGG(json_build_object(
+        'image_url', pi.image_url,
+        'is_primary', pi.is_primary
+      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images 
+      FROM pets p 
+      WHERE p.id IN (
+        SELECT pet_id FROM favorites WHERE user_id = $1
+      ) AND p.deleted_at IS NULL
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+      OFFSET $2
+      LIMIT $3
+    `
+    const { rows } = await pool.query(query, [userId, offset, limit])
+    return {
+      data: rows,
+      total: rows.length,
+      offset,
+      limit
+    }
+  }
+
+  static async getFavoriteIds ({ userId }) {
+    const query = `
+      SELECT pet_id FROM favorites WHERE user_id = $1
+    `
+    const { rows } = await pool.query(query, [userId])
+    return rows.map(row => row.pet_id)
+  }
 }

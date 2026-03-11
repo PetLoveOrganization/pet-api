@@ -20,4 +20,20 @@ export class AccountController {
     }
     res.json(user)
   }
+
+  getFavoritePets = async (req, res) => {
+    const { id: userId } = req.user
+    const { validQuery } = req
+    const pets = await this.accountModel.getFavoritePets({ validQuery, userId })
+    return res.json(pets)
+  }
+
+  getFavoriteIds = async (req, res) => {
+    const { id: userId } = req.user
+    const result = await this.accountModel.getFavoriteIds({ userId })
+    res.json({
+      success: true,
+      favoriteIds: result
+    })
+  }
 }

@@ -1,0 +1,16 @@
+meta {
+  name: Favorite Ids
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/account/favorites/ids
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

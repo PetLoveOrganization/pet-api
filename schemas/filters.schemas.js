@@ -36,3 +36,22 @@ export const filtersSchema = z.object({
     .default(DEFAULTS.LIMIT_PAGE)
     .optional()
 })
+
+export const limitOffsetSchema = z.object({
+  offset: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(
+      z.number().int().min(0)
+    )
+    .default(DEFAULTS.LIMIT_OFFSET)
+    .optional(),
+  limit: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(
+      z.number().int().min(1)
+    )
+    .default(DEFAULTS.LIMIT_PAGE)
+    .optional()
+})

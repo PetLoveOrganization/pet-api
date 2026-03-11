@@ -1,0 +1,26 @@
+meta {
+  name: Toggle Favorite
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/pet/:id/favorite
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 9ebf2fd3-fb22-4265-94cd-2f6be0b50688
+}
+
+body:json {
+  {
+    
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
