@@ -21,6 +21,16 @@ export class AccountController {
     res.json(user)
   }
 
+  updateAdapterProfile = async (req, res) => {
+    const { id } = req.user
+    const { body } = req
+    const user = await this.accountModel.updateAdapterProfile({ id, input: body })
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+    res.json(user)
+  }
+
   getFavoritePets = async (req, res) => {
     const { id: userId } = req.user
     const { validQuery } = req

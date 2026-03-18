@@ -12,12 +12,24 @@ export class AccountModel {
   }
 
   static async getAdapterProfile ({ id }) {
-    const { rows } = await pool.query('SELECT * FROM adopter_profiles WHERE user_id = $1', [id])
+    const { rows } = await pool.query('SELECT phone_number, address, housing, other_pets, created_at, updated_at FROM adopter_profiles WHERE user_id = $1', [id])
     const adopterProfile = rows[0]
     if (!adopterProfile) {
       return null
     }
     return adopterProfile
+  }
+
+  static async updateAdapterProfile ({ id, input }) {
+    const fields = Object.keys(input)
+    const query = `
+      UPDATE adopter_profiles 
+      SET ${fields.map((field, index) => `${field} = $${index + 2}`).join(', ')}
+      WHERE user_id = $1
+      RETURNING phone_number, address, housing, other_pets, created_at, updated_at
+    `
+    const { rows } = await pool.query(query, [id, ...Object.values(input)])
+    return rows[0]
   }
 
   static async getAdoptionContext ({ userId, petId }) {
