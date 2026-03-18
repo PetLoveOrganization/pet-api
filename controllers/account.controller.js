@@ -36,4 +36,11 @@ export class AccountController {
       favoriteIds: result
     })
   }
+
+  getAdoptionRequests = async (req, res) => {
+    const { id: userId } = req.user
+    const { validQuery } = req
+    const applications = await this.accountModel.getAdoptionRequests({ validQuery, userId })
+    return res.json(applications)
+  }
 }

@@ -55,3 +55,7 @@ export const limitOffsetSchema = z.object({
     .default(DEFAULTS.LIMIT_PAGE)
     .optional()
 })
+
+export const AdoptionRequestSchema = limitOffsetSchema.extend({
+  status: z.enum(['pending', 'approved', 'rejected'], 'The status must be one of pending, approved, rejected').optional()
+})

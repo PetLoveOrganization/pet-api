@@ -1,0 +1,15 @@
+meta {
+  name: Adoption Requests
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/account/adoption-requests
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

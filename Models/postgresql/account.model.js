@@ -98,4 +98,46 @@ export class AccountModel {
     const { rows } = await pool.query(query, [userId])
     return rows.map(row => row.pet_id)
   }
+
+  static async getAdoptionRequests ({ userId, validQuery }) {
+    const { offset, limit, status } = validQuery
+    const where = []
+    const queryParams = [userId]
+    if (status) {
+      where.push(`status = $${queryParams.length + 1}`)
+      queryParams.push(status)
+    }
+    const query = `
+      SELECT 
+        ar.id,
+        ar.status,
+        ar.created_at,
+        to_jsonb(p) || jsonb_build_object(
+          'images', COALESCE(
+            (SELECT json_agg(json_build_object(
+              'image_url', pi.image_url,
+              'is_primary', pi.is_primary
+            )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true),
+            '[]'::json
+          )
+        ) AS pet,
+        COUNT(*) OVER() AS full_count
+      FROM pets p
+      JOIN adoption_requests ar ON p.id = ar.pet_id 
+      WHERE ar.user_id = $1 ${where.length > 0 ? `AND ${where.join(' AND ')}` : ''} AND p.deleted_at IS NULL
+      GROUP BY p.id, ar.id
+      ORDER BY ar.created_at DESC
+      OFFSET $${queryParams.length + 1}
+      LIMIT $${queryParams.length + 2}
+    `
+    const { rows } = await pool.query(query, [...queryParams, offset, limit])
+    const total = rows.length > 0 ? parseInt(rows[0].full_count) : 0
+    const cleanData = rows.map(({ full_count, ...petData }) => petData)
+    return {
+      data: cleanData,
+      total,
+      offset,
+      limit
+    }
+  }
 }
