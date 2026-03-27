@@ -7,6 +7,7 @@ import { verifyToken } from '../middlewares/auth.middlewares.js'
 import { paramsSchema } from '../schemas/params.schemas.js'
 import { extractUser } from '../middlewares/extract-user.middleware.js'
 import { FavoriteController } from '../controllers/favorite.controller.js'
+import { upload } from '../middlewares/multer.middlewares.js'
 
 export const createPetsRouter = ({ petsModel, accountModel }) => {
   const petsController = new PetsController({ petsModel, accountModel })
@@ -18,7 +19,7 @@ export const createPetsRouter = ({ petsModel, accountModel }) => {
 
   router.use(verifyToken)
 
-  router.post('/', validateBody(createPetSchema), petsController.create)
+  router.post('/', upload.array('images', 5), validateBody(createPetSchema), petsController.create)
 
   router.patch('/:id', validateParams(paramsSchema), validateBody(updatePetSchema), petsController.update)
   router.delete('/:id', validateParams(paramsSchema), petsController.delete)

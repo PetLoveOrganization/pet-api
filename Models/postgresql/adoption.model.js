@@ -1,4 +1,4 @@
-import { pool } from './db.js'
+import { pool } from '../../config/db.js'
 
 export class AdoptionModel {
   static async createAdoptionFull ({ userId, input }) {

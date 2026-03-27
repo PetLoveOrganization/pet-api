@@ -1,5 +1,4 @@
-import { pool } from './db.js'
-// import crypto from 'node:crypto'
+import { pool } from '../../config/db.js'
 import { AgeUnit, PetAges } from '../../type.d.js'
 export class PetsModel {
   static async getAll ({ text, species, age, gender, states, health, sortBy, offset, limit }) {
@@ -98,20 +97,20 @@ export class PetsModel {
     return pet
   }
 
-  static async create ({ input }) {
+  static async create ({ input, userId }) {
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
-      const { images, requirement_ids, name, user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs } = input
-      const { rows } = await client.query('INSERT INTO pets (name,user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING *', [name, user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs])
+      const { images, requirement_ids, name, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs } = input
+      const { rows } = await client.query('INSERT INTO pets (name,user_id, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING *', [name, userId, species, breed, age, age_unit, size, color, gender, description, location, recovery_fee, is_sterilized, sterilization_date, is_vaccinated, vaccines_updated_at, vaccines, is_dewormed, dewormed_info, is_friendly, is_trained, is_urgent, energy_level, affection_level, exercise_needs])
       if (images) {
         const imgValues = []
         const placeholders = images.map((image, index) => {
-          const offset = index * 3
-          imgValues.push(rows[0].id, image.image_url, image.is_primary)
-          return `($${offset + 1}, $${offset + 2}, $${offset + 3})`
+          const offset = index * 4
+          imgValues.push(rows[0].id, image.image_url, image.public_id, image.is_primary)
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4})`
         }).join(', ')
-        await client.query(`INSERT INTO pet_images (pet_id, image_url, is_primary) VALUES ${placeholders}`, imgValues)
+        await client.query(`INSERT INTO pet_images (pet_id, image_url, public_id, is_primary) VALUES ${placeholders}`, imgValues)
       }
       if (requirement_ids) {
         const reqValues = []
@@ -237,7 +236,17 @@ export class PetsModel {
 
   static async delete ({ id }) {
     const client = await pool.connect()
-    const { rows } = await client.query('DELETE FROM pets WHERE id = $1 RETURNING *', [id])
+    const query = `
+      WITH deleted_images AS (
+        DELETE FROM pet_images 
+        WHERE pet_id = $1 
+        RETURNING public_id
+      )
+      DELETE FROM pets 
+      WHERE id = $1 
+      RETURNING *, (SELECT json_agg(public_id) FROM deleted_images) AS deleted_images;
+    `
+    const { rows } = await client.query(query, [id])
     if (rows.length === 0) {
       return null
     }

@@ -1,3 +1,5 @@
+import { deleteFromCloudinary, uploadOptimizedImage } from '../services/image.services.js'
+
 export class PetsController {
   constructor ({ petsModel, accountModel }) {
     this.petsModel = petsModel
@@ -24,7 +26,19 @@ export class PetsController {
 
   create = async (req, res, next) => {
     try {
-      const pet = await this.petsModel.create({ input: req.body })
+      const { id: userId } = req.user
+      const { files } = req
+      const { primary_index, name } = req.body
+      const uploadPromises = files.map(file =>
+        uploadOptimizedImage(file.buffer, name)
+      )
+      const uploadedImages = await Promise.all(uploadPromises)
+      const images = uploadedImages.map((result, index) => ({
+        image_url: result.url,
+        public_id: result.public_id,
+        is_primary: index === primary_index
+      }))
+      const pet = await this.petsModel.create({ input: { ...req.body, images }, userId })
       res.status(201).json(pet)
     } catch (error) {
       next(error)
@@ -49,6 +63,7 @@ export class PetsController {
     if (!result) {
       return res.status(404).json({ status: 'error', message: 'Pet not found' })
     }
+    deleteFromCloudinary(result.deleted_images)
     res.json({ message: 'Pet deleted' })
   }
 }

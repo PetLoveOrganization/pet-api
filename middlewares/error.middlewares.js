@@ -1,6 +1,21 @@
+import multer from 'multer'
+
 export const errorHandlerMiddleware = (err, req, res, next) => {
   let statusCode = err.status || 500
   let message = err.message || 'Internal Server Error'
+
+  if (err instanceof multer.MulterError) {
+    statusCode = 400
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'File size limit exceeded'
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      message = 'File count limit exceeded'
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = 'Unexpected file'
+    }
+  }
 
   if (err.code === '23505') {
     statusCode = 409

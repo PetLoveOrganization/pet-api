@@ -7,6 +7,13 @@ const level = (label) => {
   })
 }
 
+const imageSchema = z.any()
+  .refine((file) => file?.size <= 5 * 1024 * 1024, 'Each photo must be less than 5MB')
+  .refine(
+    (file) => ['image/jpeg', 'image/png', 'image/webp'].includes(file?.mimetype),
+    'Only JPG, PNG and WEBP formats are allowed'
+  )
+
 const petSchema = z.object({
   id: z.uuid().optional(),
   user_id: z.uuid().optional(),
@@ -47,22 +54,22 @@ const petSchema = z.object({
     invalid_type_error: 'Location must be a string',
     required_error: 'Location is required'
   }).max(50, 'Location must be at most 50 characters'),
-  recovery_fee: z.number().min(0),
+  recovery_fee: z.coerce.number().min(0),
 
   // Health
-  is_sterilized: z.boolean(),
+  is_sterilized: z.coerce.boolean(),
   sterilization_date: z.coerce.date().nullable(),
-  is_vaccinated: z.boolean(),
-  vaccines_updated_at: z.boolean(),
+  is_vaccinated: z.coerce.boolean(),
+  vaccines_updated_at: z.coerce.boolean(),
   vaccines: z.string().nullable(),
-  is_dewormed: z.boolean(),
-  dewormed_info: z.string().nullable(),
+  is_dewormed: z.coerce.boolean().default(false),
+  dewormed_info: z.string().default('monthly'),
 
   // States
-  is_friendly: z.boolean(),
-  is_trained: z.boolean(),
-  is_urgent: z.boolean(),
-  is_adopted: z.boolean(),
+  is_friendly: z.coerce.boolean(),
+  is_trained: z.coerce.boolean(),
+  is_urgent: z.coerce.boolean(),
+  is_adopted: z.coerce.boolean(),
 
   // Levels
   energy_level: level('Energy level'),
@@ -77,13 +84,12 @@ const petInputBase = petSchema.omit({
   id: true,
   is_adopted: true,
   created_at: true,
-  deleted_at: true
+  deleted_at: true,
+  user_id: true
 }).extend({
-  images: z.array(z.object({
-    image_url: z.url(),
-    is_primary: z.boolean()
-  })).min(1, 'At least one image is required'),
-  requirement_ids: z.array(z.number()).min(1, 'At least 1 requirement is needed')
+  images: z.array(imageSchema).min(1, 'At least one image is required').max(5, 'At most 5 images are allowed'),
+  primary_index: z.coerce.number().min(0).max(4).default(0),
+  requirement_ids: z.array(z.coerce.number()).min(1, 'At least 1 requirement is needed')
 })
 
 const validateVaccination = (data) => {
@@ -105,10 +111,6 @@ const validateSterilization = (data) => {
 }
 
 export const createPetSchema = petInputBase
-  .extend({
-    is_dewormed: z.boolean().default(false),
-    dewormed_info: z.string().default('monthly')
-  })
   .refine(validateVaccination, {
     message: 'Vaccination consistency error',
     path: ['vaccines']

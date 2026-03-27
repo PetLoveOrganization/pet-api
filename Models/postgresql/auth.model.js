@@ -1,5 +1,5 @@
 import { SALT_ROUNDS } from '../../config.js'
-import { pool } from './db.js'
+import { pool } from '../../config/db.js'
 import bcrypt from 'bcrypt'
 export class AuthModel {
   static async login ({ email, password }) {

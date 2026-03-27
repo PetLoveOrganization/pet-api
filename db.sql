@@ -3,15 +3,15 @@ DROP TABLE IF EXISTS adoption_requirements;
 DROP TABLE IF EXISTS pet_health_details;
 DROP TABLE IF EXISTS pet_images;
 DROP TABLE IF EXISTS pets;
--- DROP TABLE IF EXISTS users;
--- CREATE TABLE users (
---   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
---   name TEXT NOT NULL,
---   email TEXT NOT NULL UNIQUE,
---   password TEXT NOT NULL,
---   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
--- );
--- CREATE TYPE levels AS ENUM ('low', 'medium', 'high', 'very high');
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TYPE levels AS ENUM ('low', 'medium', 'high', 'very high');
 CREATE TABLE pets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE
@@ -68,6 +68,7 @@ CREATE TABLE pet_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
   image_url TEXT NOT NULL,
+  public_id TEXT NOT NULL,
   is_primary BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -85,225 +86,7 @@ CREATE TABLE pet_adoption_requirements (
 );
 CREATE INDEX idx_pet_images_pet_id ON pet_images(pet_id);
 CREATE INDEX idx_pets_user_id ON pets(user_id);
-BEGIN;
--- 1. Catálogo de requisitos
-INSERT INTO adoption_requirements (description, icon_name)
-VALUES ('House with fenced yard', 'home'),
-  ('Active lifestyle', 'run'),
-  ('Time for daily walks', 'clock'),
-  ('Previous experience required', 'shield'),
-  ('No other pets in the house', 'alert-circle'),
-  ('Commitment to follow-ups', 'clipboard-check') ON CONFLICT DO NOTHING;
--- 2. Inserción de Mascotas
-DO $$
-DECLARE user_id_val UUID := '8262367b-67a3-4aef-b2c6-1da860421951';
-pid_kobe UUID;
-pid_mora UUID;
-pid_pipo UUID;
-BEGIN -- KOBE (Perro)
-INSERT INTO pets (
-    user_id,
-    name,
-    species,
-    breed,
-    age,
-    age_unit,
-    size,
-    color,
-    gender,
-    description,
-    energy_level,
-    affection_level,
-    exercise_needs,
-    location,
-    recovery_fee,
-    is_friendly,
-    is_trained,
-    is_urgent,
-    is_sterilized,
-    sterilization_date,
-    is_vaccinated,
-    vaccines_updated_at,
-    vaccines,
-    is_dewormed,
-    dewormed_info
-  )
-VALUES (
-    user_id_val,
-    'Kobe',
-    'dog',
-    'Husky Mix',
-    2,
-    'years',
-    'large',
-    'Gray/White',
-    'male',
-    'Energetic and loyal companion, loves outdoor adventures.',
-    'very high',
-    'high',
-    'very high',
-    'San Francisco',
-    150.00,
-    true,
-    true,
-    true,
-    true,
-    '2025-06-15',
-    true,
-    true,
-    'Rabies, DHPP, Lepto',
-    true,
-    'Quarterly'
-  )
-RETURNING id INTO pid_kobe;
--- MORA (Gata) - Corregida: Se eliminó el "true" extra al final
-INSERT INTO pets (
-    user_id,
-    name,
-    species,
-    breed,
-    age,
-    age_unit,
-    size,
-    color,
-    gender,
-    description,
-    energy_level,
-    affection_level,
-    exercise_needs,
-    location,
-    recovery_fee,
-    is_friendly,
-    is_urgent,
-    is_sterilized,
-    sterilization_date,
-    is_vaccinated,
-    vaccines_updated_at,
-    vaccines
-  )
-VALUES (
-    user_id_val,
-    'Mora',
-    'cat',
-    'Siamese',
-    6,
-    'months',
-    'small',
-    'Cream',
-    'female',
-    'Sweet and talkative kitten. Loves to snuggle.',
-    'medium',
-    'very high',
-    'low',
-    'Seattle',
-    75.00,
-    true,
-    false,
-    false,
-    NULL,
-    true,
-    false,
-    'FVRCP (Core feline vaccine)'
-  )
-RETURNING id INTO pid_mora;
--- PIPO (Conejo)
-INSERT INTO pets (
-    user_id,
-    name,
-    species,
-    breed,
-    age,
-    age_unit,
-    size,
-    color,
-    gender,
-    description,
-    energy_level,
-    affection_level,
-    exercise_needs,
-    location,
-    recovery_fee,
-    is_sterilized,
-    is_vaccinated,
-    vaccines_updated_at
-  )
-VALUES (
-    user_id_val,
-    'Pipo',
-    'rabbit',
-    'Holland Lop',
-    1,
-    'years',
-    'small',
-    'Brown',
-    'male',
-    'Quiet and gentle. Enjoys fresh hay.',
-    'low',
-    'medium',
-    'medium',
-    'Portland',
-    40.00,
-    false,
-    false,
-    false
-  )
-RETURNING id INTO pid_pipo;
--- 3. Imágenes
-INSERT INTO pet_images (pet_id, image_url, is_primary)
-VALUES (
-    pid_kobe,
-    'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8',
-    true
-  ),
-  (
-    pid_mora,
-    'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba',
-    true
-  ),
-  (
-    pid_pipo,
-    'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308',
-    true
-  );
-ALTER TABLE pet_images
-ADD CONSTRAINT pet_image_url_unique UNIQUE (pet_id, image_url);
-ALTER TABLE pet_adoption_requirements
-ADD CONSTRAINT pet_req_unique UNIQUE (pet_id, requirement_id);
--- 4. Requisitos (3 por mascota)
-INSERT INTO pet_adoption_requirements (pet_id, requirement_id)
-SELECT pid_kobe,
-  id
-FROM adoption_requirements
-WHERE description IN (
-    'House with fenced yard',
-    'Active lifestyle',
-    'Time for daily walks'
-  );
-INSERT INTO pet_adoption_requirements (pet_id, requirement_id)
-SELECT pid_mora,
-  id
-FROM adoption_requirements
-WHERE description IN (
-    'No other pets in the house',
-    'Commitment to follow-ups',
-    'Previous experience required'
-  );
-INSERT INTO pet_adoption_requirements (pet_id, requirement_id)
-SELECT pid_pipo,
-  id
-FROM adoption_requirements
-WHERE description IN (
-    'No other pets in the house',
-    'Previous experience required',
-    'Commitment to follow-ups'
-  );
-END $$;
-COMMIT;
-DELETE FROM adoption_requirements
-WHERE id > 6;
-DROP TYPE IF EXISTS housing_type;
 CREATE TYPE housing_type AS ENUM ('apartment', 'house', 'patio');
-DROP TABLE IF EXISTS adapter_profiles;
 CREATE TABLE adopter_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -315,9 +98,7 @@ CREATE TABLE adopter_profiles (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_user_profile UNIQUE (user_id)
 );
-ALTER TABLE adopter_profiles DROP COLUMN IF EXISTS motivation;
 CREATE TYPE adoption_request_status AS ENUM ('pending', 'approved', 'rejected');
-DROP TABLE IF EXISTS adoption_requests;
 CREATE TABLE adoption_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -328,8 +109,6 @@ CREATE TABLE adoption_requests (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_user_pet_request UNIQUE (user_id, pet_id)
 );
-ALTER TABLE adopter_profiles
-ADD CONSTRAINT unique_user_profile UNIQUE (user_id);
 CREATE TABLE favorites (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
