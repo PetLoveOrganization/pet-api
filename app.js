@@ -12,6 +12,8 @@ import { createAccountsRouter } from './routes/account.router.js'
 import { AccountModel } from './models/postgresql/account.model.js'
 import { AdoptionModel } from './models/postgresql/adoption.model.js'
 import { createAdoptionRouter } from './routes/adoption.router.js'
+import { createRequirementsRouter } from './routes/requirements.router.js'
+import { RequirementsModel } from './models/postgresql/requirements.model.js'
 
 const app = express()
 
@@ -25,6 +27,7 @@ app.use('/auth', createAuthRouter({ authModel: AuthModel }))
 app.use('/pets', createPetsRouter({ petsModel: PetsModel, accountModel: AccountModel }))
 app.use('/account', createAccountsRouter({ accountModel: AccountModel }))
 app.use('/adoptions', createAdoptionRouter({ adoptionModel: AdoptionModel }))
+app.use('/requirements', createRequirementsRouter({ requirementsModel: RequirementsModel }))
 
 app.use(errorHandlerMiddleware)
 
