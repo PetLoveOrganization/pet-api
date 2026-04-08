@@ -5,12 +5,13 @@ import { validateBody, validateQuery } from '../middlewares/validator.middleware
 import { AdoptionRequestSchema, limitOffsetSchema } from '../schemas/filters.schemas.js'
 import { adapterProfileSchema } from '../schemas/adapter-profile.schema.js'
 
-export const createAccountsRouter = ({ accountModel }) => {
+export const createAccountsRouter = ({ accountModel, petsModel }) => {
   const router = express.Router()
-  const accountController = new AccountController({ accountModel })
+  const accountController = new AccountController({ accountModel, petsModel })
 
   router.use(verifyToken)
   router.get('/me', accountController.me)
+  router.get('/me/pets', validateQuery(limitOffsetSchema), accountController.getMyPets)
   router.get('/adopter-profile', accountController.getAdapterProfile)
   router.patch('/adopter-profile', validateBody(adapterProfileSchema), accountController.updateAdapterProfile)
   router.get('/favorites', validateQuery(limitOffsetSchema), accountController.getFavoritePets)

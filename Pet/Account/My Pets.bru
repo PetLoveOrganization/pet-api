@@ -1,0 +1,15 @@
+meta {
+  name: My Pets
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/me/pets
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

@@ -25,7 +25,7 @@ app.use(morgan('dev'))
 
 app.use('/auth', createAuthRouter({ authModel: AuthModel }))
 app.use('/pets', createPetsRouter({ petsModel: PetsModel, accountModel: AccountModel }))
-app.use('/account', createAccountsRouter({ accountModel: AccountModel }))
+app.use('/account', createAccountsRouter({ accountModel: AccountModel, petsModel: PetsModel }))
 app.use('/adoptions', createAdoptionRouter({ adoptionModel: AdoptionModel }))
 app.use('/requirements', createRequirementsRouter({ requirementsModel: RequirementsModel }))
 

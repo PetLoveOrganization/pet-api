@@ -252,4 +252,32 @@ export class PetsModel {
     }
     return rows[0]
   }
+
+  static async getMyPets ({ validQuery, userId }) {
+    const { offset, limit } = validQuery
+    const query = `
+    SELECT 
+      p.*, 
+      (SELECT JSON_AGG(json_build_object(
+        'image_url', pi.image_url,
+        'is_primary', pi.is_primary
+      )) FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = true) AS images,
+      (SELECT CAST(COUNT(*) AS INTEGER) FROM adoption_requests ar WHERE ar.pet_id = p.id) AS adoption_requests_count,
+      COUNT(*) OVER() AS full_count
+    FROM pets p  
+    WHERE p.user_id = $1
+    GROUP BY p.id 
+    ORDER BY created_at DESC 
+    LIMIT $2 
+    OFFSET $3`
+    const { rows: pets } = await pool.query(query, [userId, limit, offset])
+    const cleanData = pets.map(({ full_count, ...petData }) => petData)
+    const total = pets.length > 0 ? parseInt(pets[0].full_count) : 0
+    return {
+      data: cleanData,
+      total,
+      offset,
+      limit
+    }
+  }
 }

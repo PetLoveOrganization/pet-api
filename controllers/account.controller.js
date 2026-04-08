@@ -1,6 +1,7 @@
 export class AccountController {
-  constructor ({ accountModel }) {
+  constructor ({ accountModel, petsModel }) {
     this.accountModel = accountModel
+    this.petsModel = petsModel
   }
 
   me = async (req, res) => {
@@ -10,6 +11,13 @@ export class AccountController {
       return res.status(404).json({ message: 'User not found' })
     }
     res.json(user)
+  }
+
+  getMyPets = async (req, res) => {
+    const { id: userId } = req.user
+    const { validQuery } = req
+    const pets = await this.petsModel.getMyPets({ validQuery, userId })
+    return res.json(pets)
   }
 
   getAdapterProfile = async (req, res) => {
